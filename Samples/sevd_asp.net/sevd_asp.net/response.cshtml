@@ -1,0 +1,90 @@
+﻿@using System.Collections.Generic
+@using System.Collections.Specialized
+@using System.Text
+@using System.Xml
+@using System.Xml.Linq
+
+
+
+@{
+
+    // Your user was redirected to this page after completing their payment on the SEVD interface.
+    // During that redirect, their browser made a POST containing the transaction response.
+
+    // Just like the original request, the response is tokenized to avoid exposing any information to the user's browser.
+    NameValueCollection PostData = Request.Unvalidated.Form; // By default, .NET will see XML and throw a System.Web.HttpRequestValidationException 
+    string tokenized_response = PostData["response"];
+
+    // This block is decrypting the response.
+    string detokenization_url = "https://www.sageexchange.com/sevd/frmopenenvelope.aspx";
+    byte[] requestData = UTF8Encoding.UTF8.GetBytes("request=" + WebUtility.UrlEncode(tokenized_response));
+
+    WebRequest requestClient = WebRequest.Create(detokenization_url);
+    requestClient.Method = "POST";
+    requestClient.ContentType = "application/x-www-form-urlencoded";
+
+    Stream requestStream = requestClient.GetRequestStream();
+    requestStream.Write(requestData, 0, requestData.Length);
+
+    WebResponse response = requestClient.GetResponse();
+    Stream responseStream = response.GetResponseStream();
+    StreamReader reader = new StreamReader(responseStream);
+
+    string raw_response = reader.ReadToEnd();
+
+    requestStream.Close();
+    responseStream.Close();
+    reader.Close();
+
+    // Casting the response string to an XML object makes handling the data much easier. After checking the value.
+    if (XElement.Parse(raw_response) != null)
+    {
+        raw_response = "No Response Data Returned!";
+        
+    }
+    else
+    {
+        XElement Result = XElement.Parse(raw_response);
+        IEnumerable<XElement> ResultData = from node in Result.Descendants()
+                                           select node;
+    }
+    }
+
+
+
+    // [Some database calls and/or logging here, probably.]
+
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>pg 3 - SEVD Sample</title>
+</head>
+
+<body>
+    <h3>Payment Results:</h3>
+    <!-- We're done! Give your user a result: -->
+    <pre>
+        Thank you for shopping with us, @ResultData.Single(x => x.Name.ToString() == "FirstName").Value!<br />
+        Your transaction was @ResultData.Single(x => x.Name.ToString() == "ResponseMessage").Value.<br />
+        Order Number: @ResultData.Single(x => x.Name.ToString() == "Reference1").Value<br />
+        Transaction ID: @ResultData.Single(x => x.Name.ToString() == "TransactionID").Value<br />
+        Amount: $ @ResultData.Single(x => x.Name.ToString() == "Amount").Value<br />
+        VANReference: @ResultData.Single(x => x.Name.ToString() == "VANReference").Value<br />
+        Response Message: @ResultData.Single(x => x.Name.ToString() == "ResponseMessage").Value<br />
+        Last Four: @ResultData.Single(x => x.Name.ToString() == "Last4").Value<br />
+        
+        
+    </pre>
+    <br />
+    <pre>
+        Response XML: <br />
+        <code>@raw_response</code>
+    </pre>
+    <!--
+        FOR SUPPORT: sdksupport@sage.com
+
+    -->
+</body>
+</html>
