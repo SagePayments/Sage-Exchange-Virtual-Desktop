@@ -1,0 +1,99 @@
+﻿@using System.Collections.Generic
+@using System.Collections.Specialized
+@using System.Text
+@using System.Xml
+@using System.Xml.Linq
+
+
+
+@{
+
+    // Your user was redirected to this page after completing their payment on the SEVD interface.
+    // During that redirect, their browser made a POST containing the transaction response.
+
+    // Just like the original request, the response is tokenized to avoid exposing any information to the user's browser.
+    NameValueCollection PostData = Request.Unvalidated.Form; // By default, .NET will see XML and throw a System.Web.HttpRequestValidationException 
+    string tokenized_response = PostData["response"];
+
+    // This block is decrypting the response.
+    string detokenization_url = "https://www.sageexchange.com/sevd/frmopenenvelope.aspx";
+    byte[] requestData = UTF8Encoding.UTF8.GetBytes("request=" + WebUtility.UrlEncode(tokenized_response));
+
+    WebRequest requestClient = WebRequest.Create(detokenization_url);
+    requestClient.Method = "POST";
+    requestClient.ContentType = "application/x-www-form-urlencoded";
+
+    Stream requestStream = requestClient.GetRequestStream();
+    requestStream.Write(requestData, 0, requestData.Length);
+
+    WebResponse response = requestClient.GetResponse();
+    Stream responseStream = response.GetResponseStream();
+    StreamReader reader = new StreamReader(responseStream);
+
+    string raw_response = reader.ReadToEnd();
+
+    requestStream.Close();
+    responseStream.Close();
+    reader.Close();
+
+    //-------------------------------------------------------------------
+    // Dress up the XML to print
+    MemoryStream mStream = new MemoryStream();
+    XmlTextWriter writer = new XmlTextWriter(mStream, Encoding.Unicode);
+    XmlDocument document = new XmlDocument();
+
+
+    // Load the XmlDocument with the XML.
+    document.LoadXml(raw_response);
+
+    writer.Formatting = Formatting.Indented;
+
+    // Write the XML into a formatting XmlTextWriter
+    document.WriteContentTo(writer);
+    writer.Flush();
+    mStream.Flush();
+
+    // Have to rewind the MemoryStream in order to read
+    // its contents.
+    mStream.Position = 0;
+
+    // Read MemoryStream contents into a StreamReader.
+    StreamReader sReader = new StreamReader(mStream);
+
+    // Extract the text from the StreamReader.
+    String FormattedXML = sReader.ReadToEnd();
+
+    string raw_response_formatted = FormattedXML;
+
+
+    mStream.Close();
+    writer.Close();
+    //--------------------------------------------------------------------
+    }
+
+
+
+    @*[Some database calls and/or logging here, probably.]*@
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>pg 3 - SEVD Sample</title>
+</head>
+
+<body>
+    <h3>Payment Results:</h3>
+    <!-- We're done! Give your user a result: -->
+    
+    <pre>
+        Response Data: <br />
+        <code>@raw_response_formatted</code>
+    </pre>
+    <!--
+        FOR SUPPORT: sdksupport@sage.com
+
+    -->
+</body>
+</html>
