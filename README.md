@@ -23,3 +23,21 @@ This endpoint will allow you to submit your encoded envelope to initiate the pay
 **Open Response Envelope** - https://www.sageexchange.com/sevd/frmopenenvelope.aspx
 
 This endpoint will allow you to submit your encoded response envelope and returns the unencoded XML for your consumption. The data is returned to your redirect or through a postback if you include a postback URL.
+
+## Enable CAPTCHA
+
+Adding an "Enable_Captcha" to <input> and set the value to "true" to enable CAPTCHA within the PEVD form.
+
+### Example html form with CAPTCHA enabled
+```xml
+<html>
+  <body onload="document.frm1.submit()">
+    <form method="POST" action="https://www.sageexchange.com/sevd/frmPayment.aspx" name="frm1">
+      <input type="hidden" name="request" value="<?php echo htmlspecialchars($tokenizedRequest) ?>" />
+      <input type="hidden" name="redirect_url" value="<?php echo "https://$redirectUrl" ?>" />
+      <input type="hidden" name="consumer_initiated" value="true" />
+      <input type="hidden" name="Enable_Captcha" value="true" />
+    </form>
+  </body>
+</html>
+```
