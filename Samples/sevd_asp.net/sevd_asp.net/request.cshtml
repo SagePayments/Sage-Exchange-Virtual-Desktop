@@ -32,8 +32,10 @@
     */
     NameValueCollection PostData = Request.Form;
 
-    /*This URL will receive the data from the response. Please indicate an updated https://requestb.in URL for testing or your own URL*/
-    string strPostBackURL = "http://requestb.in";
+    /*This URL will receive the data from the response. Please supply your own URL. Sites like Mockbin and Beeceptor can be helpful for testing*/
+    string strPostBackURL = "";
+    string strTransactionID = new Guid().ToString();
+    string strReference = (DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds.ToString();
 
     string raw_xml = @"<?xml version='1.0' encoding='utf-16'?>
                 <Request_v1 xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns:xsd='http://www.w3.org/2001/XMLSchema'>
@@ -48,9 +50,9 @@
                                 <MerchantKey>P1J2V8P2Q3D8</MerchantKey>
                             </Merchant>
                             <TransactionBase>
-                                <TransactionID>123</TransactionID>
+                                <TransactionID>" + strTransactionID + @"</TransactionID>
                                 <TransactionType>11</TransactionType>
-                                <Reference1>" + DateTime.Now.ToString() + @"</Reference1>
+                                <Reference1>" + strReference + @"</Reference1>
                                 <Amount>7.00</Amount>
                             </TransactionBase>
                             <Customer>
@@ -121,7 +123,7 @@
     <!DOCTYPE HTML>
     <html>
     <head>
-        <title>pg 2 - SEVD Sample</title>
+        <title>pg 2 - PEVD Sample</title>
     </head>
 
     <body>
@@ -135,7 +137,7 @@
              
         
 
-        <!-- This form is what actually calls the SEVD UI. -->
+        <!-- This form is what actually calls the PEVD UI. -->
         <form method="POST" action="https://www.sageexchange.com/sevd/frmpayment.aspx">
                 
         <!--
@@ -144,14 +146,10 @@
             access to our Merchant ID and Merchant Key.
         -->
                 <input type="hidden" name="request" value="@tokenized_xml" />
-
-                <!--
-            The user is sent to the redirect_url when they're done with their payment. This page also parses the
-            transaction response, which we'll see in the next file. Relative paths will not work; you must pass a
-            complete URL.
-        -->
                 <input type="hidden" name="consumer_initiated" value="True">
                 <input type="hidden" name="redirect_url" value="http://localhost:57353/response.cshtml" />
+                <!-- This input enables CAPTCHA for PEVD -->
+                <input type="hidden" name="Enable_Captcha" value="true" />
                 <input type="submit" value="Submit" /><br />
             </form>
 
